@@ -8,21 +8,24 @@ interface ProductItemProps {
 }
 
 const handleProductDetailPress = (productId: string) => {
-  // Điều hướng đến trang chi tiết sản phẩm và truyền ID sản phẩm qua URL
   router.push({ pathname: '/ProductDetail', params: { id: productId } });
 };
 
 export const ProductItem: React.FC<ProductItemProps> = ({ product }) => {
   return (
+    
     <View style={styles.container}>
       <TouchableOpacity onPress={() => handleProductDetailPress(product.id)}>
-        <Image source={product.image} style={styles.image} />
+        <Image 
+          source={{ uri: product.image || 'https://example.com/default-image.png' }} 
+          style={styles.image} 
+        />
       </TouchableOpacity>
 
       <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">
         {product.name}
       </Text>
-      <Text style={styles.price}>{product.price}</Text>
+      <Text style={styles.price}>{product.price.toLocaleString()} VND</Text>
       <TouchableOpacity style={styles.button}>
         <Text style={styles.buttonText}>Mua ngay</Text>
       </TouchableOpacity>

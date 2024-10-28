@@ -1,22 +1,47 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Modal, Button } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router'; // Sử dụng router để lấy tham số
-import { PRODUCTS } from '../src/data/products';
+// import { PRODUCTS } from '../src/data/products';
 import { Ionicons } from '@expo/vector-icons';
+import { Product } from '../src/data/products'; // Import kiểu Product nếu cần
 
 const ProductDetail = () => {
   const { id } = useLocalSearchParams(); // Lấy id từ URL
   const [isMenuVisible, setMenuVisible] = useState(false);
   const [selectedSize, setSelectedSize] = useState<number | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [product, setProduct] = useState<Product | null>(null); // State để lưu thông tin sản phẩm
+  const [loading, setLoading] = useState<boolean>(true); // State để kiểm tra trạng thái loading
 
 
-  // Tìm kiếm sản phẩm theo id
-  const product = PRODUCTS.find((p) => p.id === id);
+   // Gọi API để lấy thông tin chi tiết sản phẩm khi component được mount
+   useEffect(() => {
+    const fetchProductDetail = async () => {
+      try {
+        const response = await fetch(`http://192.168.2.30:8000/api/product/${id}`); // Gọi API với id sản phẩm
+        if (!response.ok) {
+          throw new Error('Không thể lấy sản phẩm');
+        }
+        const data = await response.json(); // Chuyển phản hồi thành JSON
+        setProduct(data); // Cập nhật state với dữ liệu sản phẩm
+        setLoading(false); // Tắt chế độ loading
+      } catch (error) {
+        console.error('Có lỗi khi gọi API:', error);
+        setLoading(false); // Tắt chế độ loading dù có lỗi
+      }
+    };
+
+    fetchProductDetail(); // Gọi hàm lấy dữ liệu
+  }, [id]); // Chạy lại khi id thay đổi
+  
+
+  
 
   const toggleMenu = () => {
     setMenuVisible(!isMenuVisible);
   };
+
+  
 
 
   const handleSizePress = (size: number) => {
@@ -39,7 +64,7 @@ const ProductDetail = () => {
   }
 
   return (
-    <>
+    <ScrollView style={styles.scrollView}>
       <View style={styles.headerRight}>
 
         {/* Menu Icon */}
@@ -62,7 +87,7 @@ const ProductDetail = () => {
 
         <Image source={product.image} style={styles.image} />
         <Text style={styles.name}>{product.name}</Text>
-        <Text style={styles.price}>Giá: {product.price}</Text>
+        <Text style={styles.price}>Giá: {product.price.toLocaleString()} VNĐ</Text>
 
         <Text style={styles.sizeText}>Kích thước</Text>
         <View style={styles.sizeContainer}>
@@ -114,12 +139,9 @@ const ProductDetail = () => {
 
 
         <Text style={styles.sizeText}>Mô tả</Text>
-        <Text style={styles.description}>
-          Đây là thông tin chi tiết của sản phẩm {product.name}.
-          Bạn có thể thêm các mô tả chi tiết hơn ở đây.
-        </Text>
+        <Text style={styles.name}>{product.description}</Text>
       </ScrollView>
-    </>
+    </ScrollView>
 
   );
 };
@@ -302,6 +324,12 @@ const styles = StyleSheet.create({
   buttonTextCart: {
     color: 'white',
   },
+  scrollView: {
+    marginHorizontal: 20,
+  },
 });
 
 export default ProductDetail;
+
+
+
