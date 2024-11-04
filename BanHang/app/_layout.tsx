@@ -30,10 +30,33 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+        <Stack.Screen name="(tabs)/index"
+          options={{
+            headerTitle: '', // Ẩn chữ "ProductDetail"
+            headerBackVisible: false, // Ẩn nút quay lại
+            headerShown: false
+          }}
+        />
         <Stack.Screen name="+not-found" />
         <Stack.Screen
           name="ProductDetail"
+          options={{
+            headerTitle: '', // Ẩn chữ "ProductDetail"
+            headerBackVisible: false, // Ẩn nút quay lại
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="component"
+          options={{
+            headerTitle: '', // Ẩn chữ "ProductDetail"
+            headerBackVisible: false, // Ẩn nút quay lại
+            headerShown: false
+          }}
+        />
+        <Stack.Screen
+          name="Checkout"
           options={{
             headerTitle: '', // Ẩn chữ "ProductDetail"
             headerBackVisible: false, // Ẩn nút quay lại

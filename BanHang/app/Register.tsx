@@ -3,35 +3,104 @@ import React, { useState } from 'react';
 import { StyleSheet, Image, View, Text, TextInput, TouchableOpacity } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
+import { ip } from './Api';
 
 export default function Register() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // const [email, setEmail] = useState('');
+  // const [password, setPassword] = useState('');
+  const [name, setName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [errorMessage, setErrorMessage] = React.useState('');
+  const [modalVisible, setModalVisible] = React.useState(false);
 
   const router = useRouter(); // Khởi tạo useRouter
+ 
 
-  
+  const handleRegister = async () => {
+
+    setErrorMessage('');
+
+    if (!name) {
+      setErrorMessage("Vui lòng nhập tên!");
+      return;
+    }
+    if (!email) {
+      setErrorMessage("Vui lòng nhập email!");
+      return;
+    }
+    if (!password || !confirmPassword) {
+      setErrorMessage("Vui lòng nhập mật khẩu!");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setErrorMessage("Mật khẩu và xác nhận mật khẩu không khớp!");
+      return;
+    }
+
+    // Kiểm tra mật khẩu mới và xác nhận
+    if (password !== confirmPassword) {
+      setErrorMessage("Mật khẩu xác nhận không đúng!");
+      return; // Không thực hiện gì thêm nếu có lỗi
+  }
+
+
+    try {
+      const response = await fetch(`${ip}/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name,
+          email: email,
+          password: password,
+          confirm_password: confirmPassword
+
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.status === 201) {
+        router.push({ pathname: '/'});
+        setModalVisible(true);
+      } else if (response.status === 409) {
+        setErrorMessage("Email này đã được sử dụng!");
+      } else {
+        setErrorMessage("Email này đã được sử dụng!");
+      }
+    } catch (error) {
+      console.error("Lỗi đăng ký:", error);
+      setErrorMessage("Không thể kết nối. Vui lòng thử lại sau.");
+    }
+  };
+
+
 
   return (
     <View style={styles.container}>
       {/* Logo */}
       <Image
-        style={styles.logo}
-        source={require('@/assets/images/banner01.png')}  
+        source={{ uri: 'https://theme.hstatic.net/200000278317/1000929405/14/logo_medium.png?v=1891' }}
+        style={styles.image}
       />
 
       <Text style={styles.baseText}>
         ĐĂNG KÝ
 
       </Text>
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
       <TextInput
         style={styles.input}
         placeholder="Name"
         placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-        
+        value={name}
+        onChangeText={setName}
+
         autoCapitalize="none"
       />
 
@@ -54,14 +123,23 @@ export default function Register() {
         secureTextEntry
         autoCapitalize="none"
       />
+      <TextInput
+        style={styles.input}
+        placeholder="Xác nhận mật khẩu"
+        placeholderTextColor="#888"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+        autoCapitalize="none"
+      />
 
 
-      <TouchableOpacity style={styles.loginButton}>
-        <Text style={styles.buttonText}>Đăng ký</Text>
+      <TouchableOpacity onPress={handleRegister} style={styles.loginButton}>
+        <Text style={styles.buttonText} >Đăng ký</Text>
       </TouchableOpacity>
 
 
-      
+
 
 
 
@@ -146,7 +224,19 @@ const styles = StyleSheet.create({
 
     marginBottom: 50,
   },
-  textRegister:{
+  textRegister: {
     color: 'red'
-  }
+  },
+  image: {
+    width: 300,  // Thay đổi kích thước tùy ý
+    height: 70, // Thay đổi kích thước tùy ý
+    resizeMode: 'contain', // Hoặc 'cover' tùy thuộc vào nhu cầu
+
+  },
+
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
 });

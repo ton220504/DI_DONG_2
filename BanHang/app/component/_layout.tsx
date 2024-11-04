@@ -19,6 +19,7 @@ export default function TabLayout() {
           paddingBottom: 5, // Thêm khoảng cách dưới tab bar nếu cần
         },
       }}>
+      
       <Tabs.Screen
         name="index"
         options={{
@@ -26,6 +27,7 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name={focused ? 'home' : 'home-outline'} color={color} />
           ),
+
         }}
       />
 
@@ -50,7 +52,6 @@ export default function TabLayout() {
           ),
         }}
       />
-
       <Tabs.Screen
         name="User"
         options={{
@@ -58,10 +59,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon name={focused ? 'person' : 'person-outline'} color={color} />
           ),
+          headerShown: false
         }}
       />
 
-      
+
+
 
 
 

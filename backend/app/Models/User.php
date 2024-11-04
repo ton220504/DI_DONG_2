@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Tymon\JWTAuth\Contracts\JWTSubject; // Import interface JWTSubject
 
-
-class User extends Authenticatable
+class User extends Authenticatable implements JWTSubject // Implement interface
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -39,8 +39,19 @@ class User extends Authenticatable
      *
      * @return array<string, string>
      */
-    protected  $casts=[
+    protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
+    // Phương thức trả về ID của người dùng
+    public function getJWTIdentifier()
+    {
+        return $this->getKey(); // Trả về ID của người dùng
+    }
+
+    // Phương thức trả về claims tùy chỉnh cho token
+    public function getJWTCustomClaims()
+    {
+        return []; // Có thể trả về các claims tùy chỉnh nếu cần
+    }
 }

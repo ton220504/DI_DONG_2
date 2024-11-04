@@ -1,278 +1,207 @@
-import { Image, StyleSheet, Platform, View, TextInput, TouchableOpacity, Modal, Dimensions } from 'react-native';
-import {
-  Text,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  FlatList
-} from 'react-native';
 
-import ProductScreen from '../product/ProductScreen';
-import { useEffect, useRef, useState } from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { StyleSheet, Image, View, Text, TextInput, TouchableOpacity } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {ip} from '../Api';
 
-// Data banner
-const DATA = [
-  {
-    id: 1,
-    title: 'Giày đá banh Nike',
-    image: require('@/assets/images/banner01.png'),
-  },
-  {
-    id: 2,
-    title: 'Giành đá banh Adidas',
-    image: require('@/assets/images/banner02.png'),
-  },
-  {
-    id: 3,
-    title: 'Giành đá banh Mizuno',
-    image: require('@/assets/images/banner03.png'),
-  },
-  {
-    id: 3,
-    title: 'Giành đá banh Puma',
-    image: require('@/assets/images/banner04.png'),
-  }
-];
+export default function User() {
 
-//data slide show
-const banners = [
-  require('@/assets/images/slideshow_2.png'),
-  require('@/assets/images/slideshow_3.png'),
-  require('@/assets/images/slideshow_4.png'),
-  require('@/assets/images/slideshow_5.png'),
-  require('@/assets/images/slideshow_7.png'),
-  // Thêm các hình ảnh khác tại đây
-];
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [errorMessage, setErrorMessage] = React.useState('');
 
-const { width } = Dimensions.get('window');
+  const router = useRouter(); // Khởi tạo useRouter
 
+  const handleRegisterPress = () => {
+    // Điều hướng đến trang đăng ký
+    router.push('/Register'); // Thay đổi '/register' thành đường dẫn của trang đăng ký
+  };
+  const handleLogin = async () => {
+    setErrorMessage(''); // Reset thông báo lỗi
 
-
-
-
-const Item = ({ title, image }: { title: string; image: any }) => (
-  <View style={styles.item}>
-    <Image source={image} style={styles.itemImage} />
-    <Text style={styles.title}>{title}</Text>
-  </View>
-);
-
-
-export default function HomeScreen() {
-  const [searchText, setSearchText] = useState<string>('');
-  const [isMenuVisible, setMenuVisible] = useState(false);
-  const scrollViewRef = useRef<ScrollView>(null); // Sử dụng ref để kiểm soát ScrollView
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex(prevIndex => {
-        const nextIndex = prevIndex === banners.length - 1 ? 0 : prevIndex + 1; // Chuyển hình hoặc quay về hình đầu tiên
-        scrollViewRef.current?.scrollTo({ x: nextIndex * width, animated: true }); // Cuộn đến hình tiếp theo
-        return nextIndex;
+    try {
+      const response = await fetch(`${ip}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+        }),
       });
-    }, 3000); // Thay đổi hình mỗi 3 giây
 
-    return () => clearInterval(interval); // Xóa interval khi component bị hủy
-  }, []);
+      const data = await response.json();
 
-
-  const handleSearch = (text: string) => {
-    setSearchText(text);
-    // Thực hiện các thao tác tìm kiếm ở đây, ví dụ: gọi API hoặc lọc danh sách
+      if (response.status === 200) {
+        console.log('Đăng nhập thành công:', data);
+        // Lưu token vào AsyncStorage để sử dụng cho các yêu cầu sau
+        if (data.token) {
+          await AsyncStorage.setItem('token', data.token);
+          console.log('Token lưu thành công');
+        }
+        router.push('/component');
+      } else {
+        if (response.status === 401) { // 401 là mã lỗi cho Unauthorized
+          setErrorMessage("Thông tin đăng nhập không hợp lệ. Vui lòng kiểm tra lại email và mật khẩu.");
+        } else {
+          setErrorMessage("Thông tin đăng nhập không hợp lệ. Vui lòng kiểm tra lại email và mật khẩu.");
+        }
+      }
+    } catch (error) {
+      console.error("Lỗi đăng nhập:", error);
+      setErrorMessage("Không thể kết nối. Vui lòng thử lại sau.");
+    }
   };
 
-  const toggleMenu = () => {
-    setMenuVisible(!isMenuVisible);
-  };
   return (
+    <View style={styles.container}>
+      {/* Logo */}
+      <Image
+        source={{ uri: 'https://theme.hstatic.net/200000278317/1000929405/14/logo_medium.png?v=1891' }}
+        style={styles.image}
+      />
 
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Tìm kiếm..."
-            value={searchText}
-            onChangeText={handleSearch}
-          />
-          <TouchableOpacity style={styles.searchButton}>
-            {/* <Text style={styles.searchButtonText}>Tìm</Text> */}
-            <Ionicons name="search-outline" size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={styles.headerRight}>
+      <Text style={styles.baseText}>
+        ĐĂNG NHẬP
 
-            {/* Menu Icon */}
-            <TouchableOpacity onPress={toggleMenu}>
-              <Ionicons name="menu-outline" size={30} color="gray" style={{ marginLeft: 2 }} />
-            </TouchableOpacity>
-          </View>
-          {/* Menu Modal */}
-          <Modal transparent={true} visible={isMenuVisible} animationType="slide">
-            <TouchableOpacity style={styles.modalBackground} onPress={toggleMenu}>
-              <View style={styles.menu}>
-                <Text style={styles.menuItem}>TRANG CHỦ</Text>
-                <Text style={styles.menuItem}>SẢN PHẨM</Text>
-                <Text style={styles.menuItem}>GIỚI THIỆU</Text>
-                <Text style={styles.menuItem}>LIÊN HỆ</Text>
-                <Text style={styles.menuItem}>TUYỂN DỤNG</Text>
-              </View>
-            </TouchableOpacity>
-          </Modal>
-        </View>
+      </Text>
 
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-        <View style={styles.bannerContainer}>
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false} // Ẩn thanh cuộn ngang
-            scrollEnabled={false} // Tắt cuộn tay (chỉ tự động chuyển hình)
-          >
-            {banners.map((banner, index) => (
-              <Image key={index} source={banner} style={styles.bannerImage} />
-            ))}
-          </ScrollView>
-        </View>
+      <TextInput
+        style={styles.input}
+        placeholder="Email"
+        placeholderTextColor="#888"
+        value={email}
+        onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Mật khẩu"
+        placeholderTextColor="#888"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        autoCapitalize="none"
+      />
 
 
+      <TouchableOpacity onPress={handleLogin} style={styles.loginButton}>
+        <Text style={styles.buttonText} >Đăng nhập</Text>
+      </TouchableOpacity>
 
 
-        <Text style={styles.newProduct}>tìm theo thương hiệu</Text>
-        <View style={styles.underline} />
-        <FlatList
-          data={DATA}
-          numColumns={2} // Hiển thị 2 cột
-          renderItem={({ item }) => <Item title={item.title} image={item.image} />}
-          keyExtractor={item => item.id.toString()}
-          columnWrapperStyle={styles.columnWrapper} // Căn chỉnh giữa các cột
-        />
+      <TouchableOpacity>
+        <Text style={styles.forgotPasswordText}>Quên mật khẩu?</Text>
+      </TouchableOpacity>
 
-
-        <Text style={styles.newProduct}>Sản phẩm mới</Text>
-        <View style={styles.underline} />
+      <Text style={styles.forgotPasswordText}>Bạn chưa có tài khoản, đăng ký
+        <TouchableOpacity onPress={handleRegisterPress}>
+          <Text style={styles.textRegister}> tại đây</Text>
+        </TouchableOpacity>
+      </Text>
 
 
 
-        <View>
-          <ProductScreen />
-        </View>
+      <TouchableOpacity style={styles.socialButton}>
+        <Ionicons name="logo-google" size={24} color="white" />
+        <Text style={styles.socialButtonText}>Đăng nhập bằng Google</Text>
+      </TouchableOpacity>
 
-      </ScrollView>
-    </SafeAreaView>
+
+      <TouchableOpacity style={[styles.socialButton, styles.facebookButton]}>
+        <Ionicons name="logo-facebook" size={24} color="white" />
+        <Text style={styles.socialButtonText}>Đăng nhập bằng Facebook</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+
   container: {
     flex: 1,
-    paddingTop: StatusBar.currentHeight,
-  },
-  scrollView: {
-    marginHorizontal: 20,
-  },
-  text: {
-    marginTop: 40,
-    fontSize: 42,
-  },
-  searchInput: {
-    marginTop: 10,
-    height: 40,
-    width: 300,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    //borderRadius: 10,
-    borderTopLeftRadius: 10,   // Bo tròn góc trái trên
-    borderBottomLeftRadius: 10, // Bo tròn góc trái dưới
-    paddingHorizontal: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
     backgroundColor: '#fff',
   },
-
-  searchContainer: {
-    flexDirection: 'row', // Đặt TextInput và nút theo hàng ngang
-    alignItems: 'center', // Căn giữa theo chiều dọc
+  logo: {
+    width: 350,
+    height: 50,
+    resizeMode: 'contain',
+    marginBottom: 20,
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    borderColor: '#ccc',
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 15,
+    marginBottom: 15,
+    fontSize: 16,
+  },
+  loginButton: {
+    backgroundColor: '#4285F4',
+    padding: 15,
+    borderRadius: 5,
+    width: '100%',
+    alignItems: 'center',
     marginBottom: 10,
   },
-  searchButton: {
-    borderBottomRightRadius: 10,   // Bo tròn góc trái trên
-    borderTopRightRadius: 10, // Bo tròn góc trái dưới
-    marginTop: 10,
-    backgroundColor: 'gray',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    height: 40,
-
+  buttonText: {
+    color: 'white',
+    fontSize: 18,
   },
-  searchButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  
-  newProduct: {
-    textAlign: 'center',
-    fontWeight: 'bold',
+  forgotPasswordText: {
+    color: '#4285F4',
+    marginBottom: 20,
     fontSize: 16,
-
   },
-  underline: {
-    marginTop: 5, // Khoảng cách giữa chữ và thanh
-    width: '50%', // Độ dài thanh (bằng 50% độ rộng màn hình, bạn có thể điều chỉnh theo ý muốn)
-    height: 2, // Độ dày của thanh ngang
-    backgroundColor: 'black', // Màu sắc của thanh ngang
-    alignSelf: 'center',
-    marginBottom: 12,
-  },
-  headerRight: {
-    marginTop: 20,
+  socialButton: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  modalBackground: {
-    flex: 1,
+    backgroundColor: '#db4437',
+    padding: 15,
+    borderRadius: 5,
+    width: '100%',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    marginBottom: 10,
   },
-  menu: {
-    backgroundColor: '#fff',
-    padding: 25,
-    borderRadius: 10,
-    marginHorizontal: 20,
+  facebookButton: {
+    backgroundColor: '#4267B2',
   },
-  menuItem: {
-    marginTop: 25,
-    fontSize: 18,
-    marginBottom: 15,
+  socialButtonText: {
+    color: 'white',
+    fontSize: 16,
+    marginLeft: 10,
   },
-  columnWrapper: {
-    justifyContent: 'space-between', // Căn chỉnh khoảng cách đều giữa các cột
-    marginBottom: 10, // Khoảng cách giữa các hàng
-  },
-  item: {
-    flex: 1, // Giúp mỗi mục chiếm đủ không gian trong hàng
-    marginHorizontal: 5, // Khoảng cách giữa các cột
-    borderRadius: 8,
-
-  },
-  itemImage: {
-    width: '100%', // Chiếm toàn bộ chiều rộng của mục
-    height: 60, // Chiều cao của banner
-
-    resizeMode: 'contain', // Đảm bảo ảnh không bị cắt
-  },
-  title: {
-    fontSize: 12,
+  baseText: {
+    color: 'black',
     fontWeight: 'bold',
-  },
-  bannerContainer: {
-    height: 150,
-    width: 350,
-  },
-  bannerImage: {
-    width, // Chiều rộng của hình ảnh bằng với chiều rộng màn hình
-    height: '100%', // Chiều cao của hình ảnh chiếm toàn bộ chiều cao của container
-    resizeMode: 'cover', // Đảm bảo hình ảnh vừa khung
-  },
+    fontSize: 30,
 
+    marginBottom: 50,
+  },
+  textRegister: {
+    color: 'red'
+  },
+  image: {
+    width: 300,  // Thay đổi kích thước tùy ý
+    height: 70, // Thay đổi kích thước tùy ý
+    resizeMode: 'contain', // Hoặc 'cover' tùy thuộc vào nhu cầu
+
+  },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
 });

@@ -25,9 +25,9 @@ export const ProductItem: React.FC<ProductItemProps> = ({ product }) => {
       <Text style={styles.name} numberOfLines={2} ellipsizeMode="tail">
         {product.name}
       </Text>
-      <Text style={styles.price}>{product.price.toLocaleString()} VND</Text>
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>Mua ngay</Text>
+      <Text style={styles.price}>{product.price.toLocaleString()} VNĐ</Text>
+      <TouchableOpacity style={styles.button} onPress={() => handleProductDetailPress(product.id)}>
+        <Text style={styles.buttonText}>Xem chi tiết</Text>
       </TouchableOpacity>
     </View>
   );

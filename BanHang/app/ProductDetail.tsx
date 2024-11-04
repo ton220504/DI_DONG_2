@@ -1,9 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Modal, Button } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, TouchableOpacity, Modal, Button, Alert, LogBox } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router'; // Sử dụng router để lấy tham số
 // import { PRODUCTS } from '../src/data/products';
 import { Ionicons } from '@expo/vector-icons';
 import { Product } from '../src/data/products'; // Import kiểu Product nếu cần
+import { router } from 'expo-router';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ip } from './Api';
+import { useNavigation } from '@react-navigation/native'; // Để điều hướng
+import SimilarProducts from './SimilarProducts';
+
+
+// Ẩn thông báo lỗi cụ thể cho component này
+LogBox.ignoreLogs([
+  'VirtualizedLists should never be nested', // Ẩn thông báo lỗi cụ thể
+]);
 
 const ProductDetail = () => {
   const { id } = useLocalSearchParams(); // Lấy id từ URL
@@ -12,13 +24,16 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState<Product | null>(null); // State để lưu thông tin sản phẩm
   const [loading, setLoading] = useState<boolean>(true); // State để kiểm tra trạng thái loading
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [similarProducts, setSimilarProducts] = useState([]);
 
 
-   // Gọi API để lấy thông tin chi tiết sản phẩm khi component được mount
-   useEffect(() => {
+  // Gọi API để lấy thông tin chi tiết sản phẩm khi component được mountnp
+  useEffect(() => {
     const fetchProductDetail = async () => {
       try {
-        const response = await fetch(`http://192.168.2.30:8000/api/product/${id}`); // Gọi API với id sản phẩm
+        // const response = await fetch(`http://192.168.2.30:8000/api/product/${id}`); // Gọi API với id sản phẩm
+        const response = await fetch(`${ip}/product/${id}`); // Gọi API với id sản phẩm
         if (!response.ok) {
           throw new Error('Không thể lấy sản phẩm');
         }
@@ -33,15 +48,21 @@ const ProductDetail = () => {
 
     fetchProductDetail(); // Gọi hàm lấy dữ liệu
   }, [id]); // Chạy lại khi id thay đổi
-  
 
-  
+
+
 
   const toggleMenu = () => {
     setMenuVisible(!isMenuVisible);
   };
 
-  
+  const handleHome = () => {
+    router.push({ pathname: '/component' });
+  };
+
+  const toggleDescription = () => {
+    setIsExpanded(!isExpanded);
+  };
 
 
   const handleSizePress = (size: number) => {
@@ -63,35 +84,72 @@ const ProductDetail = () => {
     );
   }
 
+  // Hàm thêm sản phẩm vào giỏ hàng
+  const addToCart = async () => {
+    if (!selectedSize) {
+      Alert.alert('Thông báo', 'Vui lòng chọn kích thước');
+      return;
+    }
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) throw new Error('Token not found');
+      // In ra các giá trị để kiểm tra trước khi gửi yêu cầu
+      console.log("Product ID:", product.id);
+      console.log("Product Name:", product.name);
+      console.log("Product Price:", product.price);
+      console.log("Selected Quantity:", quantity);
+      console.log("Selected Size:", selectedSize); // Kiểm tra `selectedSize` lần nữa
+
+      const response = await axios.post(`${ip}/addtocart`, {
+        id: product.id,
+        image: product.image,
+        name: product.name,
+        price: product.price,
+        quantity: quantity,
+        size: selectedSize, // Gửi kích thước đã chọn
+
+      },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Gửi token qua header
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        Alert.alert('Thành công', 'Sản phẩm đã được thêm vào giỏ hàng!');
+        console.log('Cart:', response.data.cart); // In ra giỏ hàng để kiểm tra
+      }
+    } catch (error) {
+
+      console.error('Error adding product to cart:', error);
+    }
+  };
+
+
+
   return (
     <ScrollView style={styles.scrollView}>
       <View style={styles.headerRight}>
-
         {/* Menu Icon */}
         <TouchableOpacity onPress={toggleMenu}>
-          <Ionicons name="menu-outline" size={30} color="gray" style={{ marginLeft: 2 }} />
+          <Ionicons name="arrow-back-outline" onPress={handleHome} size={30} color="gray" style={{ marginLeft: 2 }} />
         </TouchableOpacity>
       </View>
-      <Modal transparent={true} visible={isMenuVisible} animationType="slide">
-        <TouchableOpacity style={styles.modalBackground} onPress={toggleMenu}>
-          <View style={styles.menu}>
-            <Text style={styles.menuItem}>TRANG CHỦ</Text>
-            <Text style={styles.menuItem}>SẢN PHẨM</Text>
-            <Text style={styles.menuItem}>GIỚI THIỆU</Text>
-            <Text style={styles.menuItem}>LIÊN HỆ</Text>
-            <Text style={styles.menuItem}>TUYỂN DỤNG</Text>
-          </View>
-        </TouchableOpacity>
-      </Modal>
+
       <ScrollView contentContainerStyle={styles.container}>
 
-        <Image source={product.image} style={styles.image} />
+        {/* <Image source={product.image} style={styles.image} /> */
+          <Image
+            source={{ uri: product.image || 'https://example.com/default-image.png' }}
+            style={styles.image}
+          />}
         <Text style={styles.name}>{product.name}</Text>
         <Text style={styles.price}>Giá: {product.price.toLocaleString()} VNĐ</Text>
 
         <Text style={styles.sizeText}>Kích thước</Text>
         <View style={styles.sizeContainer}>
-          {/* Tạo các ô kích thước */}
           {[38.5, 39, 40, 40.5, 41, 42, 43].map((size) => (
             <TouchableOpacity
               key={size}
@@ -99,7 +157,10 @@ const ProductDetail = () => {
                 styles.sizeButton,
                 selectedSize === size && styles.selectedButton, // Đổi màu nếu được chọn
               ]}
-              onPress={() => handleSizePress(size)}
+              onPress={() => {
+                handleSizePress(size); // Gọi hàm chọn kích thước
+                console.log("Selected size:", size); // Kiểm tra xem kích thước có được chọn không
+              }}
             >
               <Text style={selectedSize === size ? styles.selectedText : styles.size2}>
                 {size}
@@ -121,8 +182,8 @@ const ProductDetail = () => {
               <Text style={styles.buttonText}>+</Text>
             </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.cartButton}>
-            <Text style={styles.buttonTextCart}>Thêm vào giỏ hàng</Text>
+          <TouchableOpacity onPress={addToCart} style={styles.cartButton}>
+            <Text style={styles.buttonTextCart} >Thêm giỏ hàng</Text>
           </TouchableOpacity>
         </View>
 
@@ -131,15 +192,29 @@ const ProductDetail = () => {
           <TouchableOpacity style={styles.buyButton}>
             <Text style={styles.buttonTextBuy}>Mua ngay</Text>
           </TouchableOpacity>
-
         </View>
-
-
-
-
-
+        {/* <Text style={styles.sizeText}>Mô tả</Text>
+        <Text style={styles.description}>{product.description}</Text> */}
         <Text style={styles.sizeText}>Mô tả</Text>
-        <Text style={styles.name}>{product.description}</Text>
+        <Text
+          style={[styles.description, !isExpanded && styles.truncated]}
+          numberOfLines={isExpanded ? undefined : 4}
+        >
+          {product.description}
+        </Text>
+        {!isExpanded && (
+          <TouchableOpacity onPress={toggleDescription}>
+            <Text style={styles.showMoreText}>Xem thêm</Text>
+          </TouchableOpacity>
+        )}
+        {isExpanded && (
+          <TouchableOpacity onPress={toggleDescription}>
+            <Text style={styles.showLessText}>Xem ít lại</Text>
+          </TouchableOpacity>
+        )}
+
+        <Text style={styles.productDetail}>Sản phẩm liên quan</Text>
+        {product && <SimilarProducts product={product} />}
       </ScrollView>
     </ScrollView>
 
@@ -182,6 +257,22 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     marginLeft: 5,
   },
+  truncated: {
+    // Khi không mở rộng, áp dụng độ mờ
+    opacity: 0.7,
+  },
+  showMoreText: {
+    color: '#4CAF50',
+    marginTop: 5,
+    textDecorationLine: 'underline',
+    fontWeight: "bold"
+  },
+  showLessText: {
+    color: '#4CAF50',
+    marginTop: 5,
+    textDecorationLine: 'underline',
+    fontWeight: "bold"
+  },
   headerRight: {
     marginTop: 15,
     marginLeft: 20,
@@ -206,12 +297,13 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   sizeText: {
-    fontSize: 16,
+    fontSize: 18,
     marginBottom: 10,
     marginTop: 10,
     marginLeft: 5,
     textAlign: 'left', // Căn chữ Kích thước về bên trái
     alignSelf: 'flex-start', // Căn phần tử Text sang phải của container
+    fontWeight: "bold",
   },
   sizeContainer: {
     flexDirection: 'row', // Căn ngang
@@ -231,12 +323,10 @@ const styles = StyleSheet.create({
     marginVertical: 5,
     borderRadius: 5,
     margin: 5,
-
   },
   selectedButton: {
     backgroundColor: '#0033CC', // Màu nền khi nút được chọn (xanh lá cây)
   },
-
   selectedText: {
     color: '#fff', // Màu chữ trắng khi nút được chọn
     fontWeight: 'bold',
@@ -255,7 +345,7 @@ const styles = StyleSheet.create({
   },
   quantityText: {
     fontSize: 16,
-    fontWeight: 'light',
+    fontWeight: 'bold',
     marginTop: 30,
     marginBottom: 20,
     marginLeft: 5,
@@ -267,7 +357,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 20,
-    marginRight: 20,
+    marginRight: 10,
   },
   button: {
     width: 40,
@@ -317,7 +407,7 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     borderRadius: 5,
-    marginLeft: 20,
+
     marginRight: 20,
 
   },
@@ -327,6 +417,14 @@ const styles = StyleSheet.create({
   scrollView: {
     marginHorizontal: 20,
   },
+  productDetail: {
+    fontWeight: 'bold',
+    fontSize: 20,
+    textAlign: 'left',
+    alignSelf: 'flex-start', // Căn phần tử Text sang phải của container
+    marginTop: 15,
+    marginBottom: 15,
+  }
 });
 
 export default ProductDetail;
